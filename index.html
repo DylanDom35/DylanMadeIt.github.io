@@ -1,354 +1,681 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
+	<script src="js/script.js" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dylan Dominguez | Portfolio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary: #00bfff;
+            --background: #1a1a1a;
+            --text: #ffffff;
+        }
 
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            overflow: hidden;
+        }
 
-    <title>My Portfolio</title>
+        #webgl-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
 
-    <!-- Bootstrap Core CSS -->
-    <link href="css/bootstrap.min.css" rel="stylesheet">
+        .scene {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+            z-index: 2;
+        }
 
-    <!-- Custom CSS -->
-    <link href="css/stylish-portfolio.css" rel="stylesheet">
+        .universe {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
 
-    <!-- Custom Fonts -->
-    <link href="font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,300italic,400italic,700italic" rel="stylesheet" type="text/css">
+        .node {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 191, 255, 0.4), rgba(0, 191, 255, 0.1));
+            border: none;
+            border-radius: 50%;
+            box-shadow: 
+                inset -5px -5px 15px rgba(0, 0, 0, 0.4),
+                inset 5px 5px 15px rgba(255, 255, 255, 0.1),
+                0 0 20px rgba(0, 191, 255, 0.2);
+            padding: 1.5rem;
+            cursor: pointer;
+            width: 150px;
+            height: 150px;
+            margin: -75px 0 0 -75px;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+        }
 
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+        .node-content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-style: preserve-3d;
+            text-align: center;
+        }
 
+        .central-node {
+            width: 200px;
+            height: 200px;
+            margin: -100px 0 0 -100px;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 191, 255, 0.5), rgba(0, 191, 255, 0.2));
+            border: 3px solid var(--primary);
+            z-index: 10;
+            animation: pulse 4s infinite ease-in-out;
+        }
+
+        .content-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 90%;
+            max-width: 600px;
+            min-height: 400px;
+            background: rgba(26, 26, 26, 0.95);
+            border: 2px solid var(--primary);
+            border-radius: 15px;
+            padding: 2rem;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .content-panel.active {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .panel-header {
+            position: relative;
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            font-size: 2rem;
+            color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 191, 255, 0.5);
+        }
+
+        .close-btn {
+            position: absolute;
+            top: -1rem;
+            right: -1rem;
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border: none;
+            border-radius: 50%;
+            color: var(--background);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            transform: rotate(90deg);
+            background: #fff;
+        }
+
+        .panel-content {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s 0.2s;
+        }
+
+        .content-panel.active .panel-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .skill-tag {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin: 0.25rem;
+            background: rgba(0, 191, 255, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .skill-tag:hover {
+            background: rgba(0, 191, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .experience-item {
+            padding: 1rem;
+            margin: 1rem 0;
+            background: rgba(0, 191, 255, 0.1);
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .experience-item:hover {
+            background: rgba(0, 191, 255, 0.2);
+            transform: translateX(10px);
+        }
+
+        .experience-item h3 {
+            color: var(--primary);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .experience-item p {
+            margin: 0.5rem 0;
+            opacity: 0.8;
+        }
+
+        #canvas-connections {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .loader {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+            background: var(--background);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            transition: opacity 0.5s;
+        }
+
+        .loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+		
+
+        .nav-hints {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 191, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .contact-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+
+        .contact-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(26, 26, 26, 0.95);
+            padding: 2rem;
+            border-radius: 10px;
+            z-index: 1001;
+        }
+
+        .contact-form.active {
+            display: block;
+        }
+
+        .contact-form input,
+        .contact-form textarea {
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--text);
+        }
+
+        .download-cv {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 191, 255, 0.2);
+            border: 1px solid var(--primary);
+            color: var(--text);
+            border-radius: 20px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+    </style>
 </head>
-
 <body>
+    <div class="loader" id="loader">
+        <div>Loading Neural Network...</div>
+    </div>
 
-    <!-- Navigation -->
-    <a id="menu-toggle" href="#" class="btn btn-dark btn-lg toggle"><i class="fa fa-bars"></i></a>
-    <nav id="sidebar-wrapper">
-        <ul class="sidebar-nav">
-            <a id="menu-close" href="#" class="btn btn-light btn-lg pull-right toggle"><i class="fa fa-times"></i></a>
-            <li class="sidebar-brand">
-                <a href="#top" onclick=$("#menu-close").click();>High School Portfolio</a>
-            </li>
-            <li>
-                <a href="#top" onclick=$("#menu-close").click();>Home</a>
-            </li>
-            <li>
-                <a href="#about" onclick=$("#menu-close").click();>About</a>
-            </li>
-            <li>
-                <a href="#services" onclick=$("#menu-close").click();>Services</a>
-            </li>
-            <li>
-                <a href="#portfolio" onclick=$("#menu-close").click();>Portfolio</a>
-            </li>
-            <li>
-                <a href="#contact" onclick=$("#menu-close").click();>Contact</a>
-            </li>
-        </ul>
-    </nav>
+    <div id="webgl-container">
+        <canvas id="webgl"></canvas>
+    </div>
 
-    <!-- Header -->
-    <header id="top" class="header">
-        <div class="text-vertical-center">
-            <h1>My Portfolio</h1>
-            <h3>Great Oak High School| Class of 2018</h3>
-            <br>
-            <a href="#about" class="btn btn-dark btn-lg">Find Out More</a>
-        </div>
-    </header>
-
-    <!-- About -->
-    <section id="about" class="about">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12 text-center">
-                    <h2>This Portfolio features all of my 4 years at highschool and my life that entailed there!</h2>
-                    <p class="lead">This section entails the numerous assets of work i establish in my first year</p>
-                </div>
-
-            </div>
-            <!-- /.row -->
-        </div>
-        <!-- /.container -->
-    </section>
-
-<h1>Biography</h1>
-<p>Here is where i talk about my experience</p>
-
-<blockquote cite="">
-Dylan Dominguez was born on 01|08|2000 in Dallas ,Texas he remained there for 12 years until finally moving to California in the summer of 2012 with his mother and step-father. For most of his early teenage years he moved quite a bit; first starting off in Vallejo , then to Antioch and lasty Temecula, CA. Where he finished his 4 years of highschool after transfering from Vail Ranch Middle School  previously.
-</blockquote>
-
-    <!-- Services -->
-    <!-- The circle icons use Font Awesome's stacked icon classes. For more information, visit http://fontawesome.io/examples/ -->
-    <!--<section id="services" class="services bg-primary">
-        <div class="container">
-            <div class="row text-center">
-                <div class="col-lg-10 col-lg-offset-1">
-                    <h2>Our Services</h2>
-                    <hr class="small">
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6">
-                            <div class="service-item">
-                                <span class="fa-stack fa-4x">
-                                <i class="fa fa-circle fa-stack-2x"></i>
-                                <i class="fa fa-cloud fa-stack-1x text-primary"></i>
-                            </span>
-                                <h4>
-                                    <strong>Service Name</strong>
-                                </h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
-                                <a href="#" class="btn btn-light">Learn More</a>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <div class="service-item">
-                                <span class="fa-stack fa-4x">
-                                <i class="fa fa-circle fa-stack-2x"></i>
-                                <i class="fa fa-compass fa-stack-1x text-primary"></i>
-                            </span>
-                                <h4>
-                                    <strong>Service Name</strong>
-                                </h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
-                                <a href="#" class="btn btn-light">Learn More</a>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <div class="service-item">
-                                <span class="fa-stack fa-4x">
-                                <i class="fa fa-circle fa-stack-2x"></i>
-                                <i class="fa fa-flask fa-stack-1x text-primary"></i>
-                            </span>
-                                <h4>
-                                    <strong>Service Name</strong>
-                                </h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
-                                <a href="#" class="btn btn-light">Learn More</a>
-                            </div>
-                        </div>
-                        <div class="col-md-3 col-sm-6">
-                            <div class="service-item">
-                                <span class="fa-stack fa-4x">
-                                <i class="fa fa-circle fa-stack-2x"></i>
-                                <i class="fa fa-shield fa-stack-1x text-primary"></i>
-                            </span>
-                                <h4>
-                                    <strong>Service Name</strong>
-                                </h4>
-                                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit.</p>
-                                <a href="#" class="btn btn-light">Learn More</a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- /.row (nested) -->
-                </div>
-                <!-- /.col-lg-10 -->
-            </div>
-            <!-- /.row -->
-        </div>
-        <!-- /.container -->
-    </section>
-
-    <!-- Callout 
-    <aside class="callout">
-        <div class="text-vertical-center">
-            <h1>Vertically Centered Text</h1>
-        </div>
-    </aside>
-    
-
-    <!-- Portfolio -->
-    <section id="portfolio" class="portfolio">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-10 col-lg-offset-1 text-center">
-                    <h2>My Work</h2>
-                    <hr class="small">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="portfolio-item">
-                                <a href="https://dylandom35.github.io/yearone">
-                                    <img class="img-portfolio img-responsive" src="img/portfolio-1.jpg">
-                                </a>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="portfolio-item">
-                                <a href="https://dylandom35.github.io/yeartwo">
-                                    <img class="img-portfolio img-responsive" src="img/portfolio-2.jpg">
-                                </a>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="portfolio-item">
-                                <a href="https://dylandom35.github.io/yearthree">
-                                    <img class="img-portfolio img-responsive" src="img/portfolio-3.jpg">
-                                </a>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="portfolio-item">
-                                <a href="https://dylandom35.github.io/yearfour">
-                                    <img class="img-portfolio img-responsive" src="img/portfolio-4.jpg">
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- /.row (nested) -->
-                </div>
-                <!-- /.col-lg-10 -->
-            </div>
-            <!-- /.row -->
-        </div>
-        <!-- /.container -->
-    </section>
-
-    <!-- Call to Action 
-    <aside class="call-to-action bg-primary">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12 text-center">
-                    <h3>The buttons below are impossible to resist.</h3>
-                    <a href="#" class="btn btn-lg btn-light">Click Me!</a>
-                    <a href="#" class="btn btn-lg btn-dark">Look at Me!</a>
+    <div class="scene">
+        <canvas id="canvas-connections"></canvas>
+        <div class="universe" id="universe">
+            <div class="central-node node">
+                <div class="node-content">
+                    <h1>Dylan's Mind</h1>
                 </div>
             </div>
         </div>
-    </aside>
+    </div>
 
-    <!-- Map 
-    <section id="contact" class="map">
-        <iframe width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?f=q&amp;source=s_q&amp;hl=en&amp;geocode=&amp;q=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;aq=0&amp;oq=twitter&amp;sll=28.659344,-81.187888&amp;sspn=0.128789,0.264187&amp;ie=UTF8&amp;hq=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;t=m&amp;z=15&amp;iwloc=A&amp;output=embed"></iframe>
-        <br />
-        <small>
-            <a href="https://maps.google.com/maps?f=q&amp;source=embed&amp;hl=en&amp;geocode=&amp;q=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;aq=0&amp;oq=twitter&amp;sll=28.659344,-81.187888&amp;sspn=0.128789,0.264187&amp;ie=UTF8&amp;hq=Twitter,+Inc.,+Market+Street,+San+Francisco,+CA&amp;t=m&amp;z=15&amp;iwloc=A"></a>
-        </small>
-    </section>
+    <div class="content-panel" id="contentPanel">
+        <div id="panelContent"></div>
+    </div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-10 col-lg-offset-1 text-center">
-                    <h4><strong>Dylan Dominguez</strong>
-                    </h4>
-                    <p>Great Oak High School
-                        <br>Temecula, CA 92592</p>
-                    <ul class="list-unstyled">
-                        </li>
-                    </ul>
-                    <br>
-                    <ul class="list-inline">
-                        <li>
-                            <a href="#"><i class="fa fa-facebook fa-fw fa-3x"></i></a>
-                        </li>
-                        <li>
-                            <a href="#"><i class="fa fa-twitter fa-fw fa-3x"></i></a>
-                        </li>
-                        <li>
-                            <a href="#"><i class="fa fa-dribbble fa-fw fa-3x"></i></a>
-                        </li>
-                    </ul>
-                    <hr class="small">
-                    <p class="text-muted">Copyright &copy; Dylan Dominguez 2017</p>
-                </div>
-            </div>
-        </div>
-        <a id="to-top" href="#top" class="btn btn-dark btn-lg"><i class="fa fa-chevron-up fa-fw fa-1x"></i></a>
-    </footer>
 
-    <!-- jQuery -->
-    <script src="js/jquery.js"></script>
+    <button class="contact-btn" onclick="toggleContact()">Contact Me</button>
+    <button class="download-cv" onclick="downloadCV()">Download CV</button>
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="js/bootstrap.min.js"></script>
+    <div class="nav-hints">
+        Left click + drag to rotate | Right click + drag to pan | Click nodes to explore
+    </div>
 
-    <!-- Custom Theme JavaScript -->
+    <div class="contact-form" id="contactForm">
+        <h2>Get in Touch</h2>
+        <input type="text" placeholder="Name" required>
+        <input type="email" placeholder="Email" required>
+        <textarea placeholder="Message" rows="4" required></textarea>
+        <button onclick="submitForm()">Send Message</button>
+        <button onclick="toggleContact()">Close</button>
+    </div>
+
+    <div class="content-panel" id="contentPanel">
+        <button class="close-btn" onclick="closePanel()">&times;</button>
+        <div id="panelContent"></div>
+    </div>
+
     <script>
-    // Closes the sidebar menu
-    $("#menu-close").click(function(e) {
-        e.preventDefault();
-        $("#sidebar-wrapper").toggleClass("active");
-    });
-    // Opens the sidebar menu
-    $("#menu-toggle").click(function(e) {
-        e.preventDefault();
-        $("#sidebar-wrapper").toggleClass("active");
-    });
-    // Scrolls to the selected menu item on the page
-    $(function() {
-        $('a[href*=#]:not([href=#],[data-toggle],[data-target],[data-slide])').click(function() {
-            if (location.pathname.replace(/^\//, '') == this.pathname.replace(/^\//, '') || location.hostname == this.hostname) {
-                var target = $(this.hash);
-                target = target.length ? target : $('[name=' + this.hash.slice(1) + ']');
-                if (target.length) {
-                    $('html,body').animate({
-                        scrollTop: target.offset().top
-                    }, 1000);
-                    return false;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('webgl'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.position.z = 50;
+
+        const PARTICLE_COUNT = 1000;
+        const PARTICLE_SPEED = 0.05;
+
+        const nodes = [
+            {
+                title: 'Experience',
+                content: `
+                    <div class="experience-item">
+                        <h3>UI Design and Web Design Intern</h3>
+                        <p>Frontwire Studios | 2017-2019</p>
+                        <ul>
+                            <li>Designed UI components for Galaxy in Turmoil</li>
+                            <li>Developed studio website using HTML, CSS, JavaScript</li>
+                            <li>Conducted usability testing</li>
+                        </ul>
+                    </div>
+                `,
+                z: 200
+            },
+            {
+                title: 'Skills',
+                content: `
+                    <div class="skills-container">
+                        <span class="skill-tag">Graphic Design</span>
+                        <span class="skill-tag">2D/3D Animation</span>
+                        <span class="skill-tag">UI/UX Design</span>
+                        <span class="skill-tag">HTML/CSS/JavaScript</span>
+                        <span class="skill-tag">Film & Cinematography</span>
+                    </div>
+                `,
+                z: -200
+            },
+            {
+                title: 'Education',
+                content: `
+                    <div class="experience-item">
+                        <h3>Cabrillo College</h3>
+                        <p>Currently Attending</p>
+                    </div>
+                    <div class="experience-item">
+                        <h3>San Antonio College</h3>
+                        <p>Undergraduate Studies</p>
+                    </div>
+                `,
+                z: 150
+            },
+            {
+                title: 'Projects',
+                content: `
+                    <div class="experience-item">
+                        <h3>Galaxy in Turmoil</h3>
+                        <p>Lead UI Designer</p>
+                        <ul>
+                            <li>Designed core UI components</li>
+                            <li>Improved player experience</li>
+                            <li>Collaborated with development team</li>
+                        </ul>
+                    </div>
+                `,
+                z: -150
+            }
+        ];
+
+        const universe = document.getElementById('universe');
+        let isLeftMouseDown = false;
+        let isRightMouseDown = false;
+        let startX, startY, rotX = 0, rotY = 0;
+        let panX = 0, panY = 0, zoom = 1;
+
+        function createParticleSystem() {
+            const particles = new THREE.BufferGeometry();
+            const positions = new Float32Array(PARTICLE_COUNT * 3);
+            const velocities = new Float32Array(PARTICLE_COUNT * 3);
+            
+            for (let i = 0; i < PARTICLE_COUNT * 3; i += 3) {
+                positions[i] = Math.random() * 100 - 50;
+                positions[i + 1] = Math.random() * 100 - 50;
+                positions[i + 2] = Math.random() * 100 - 50;
+                
+                velocities[i] = Math.random() * 2 - 1;
+                velocities[i + 1] = Math.random() * 2 - 1;
+                velocities[i + 2] = Math.random() * 2 - 1;
+            }
+            
+            particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particles.setAttribute('velocity', new THREE.BufferAttribute(velocities, 3));
+            
+            const material = new THREE.PointsMaterial({
+                color: 0x00bfff,
+                size: 0.3,
+                sizeAttenuation: true,
+                map: new THREE.TextureLoader().load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAWJQAAFiUBSVIk8AAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAHvSURBVFiF7Ze/S1xBFMU/Z1ZJYyGIhfArpBASU4hpLAQbQwqxMH+AYGEKsRBs07gK2xqwsBAJ/gU2NjYiaCGCQRuJRSpJYWJEMXIn1WYftN27b9/uI8KmOHCYN3PvnHPv3Zm7A0UUkQe5MQyzpOSuq6r2ReRFnvUfVPU8pfn3qjoD3AFWReQkVwRBEEwCH1S1BowAf4Bt4FhVO6p6DswCk8A4cAK0gC9BEBwDLaAtIhsD+wcBVPU18NEPwK2qrqrqO1W9VNWPN9R6UtXvfpQ8VtVvg4ZlEH4CfHbOPbV5EAQbwLKIHPvSdmDOvyMi8ldE3gI1Vf3oGxaBJyLyKim8JiLfVPVpbC7lOQ5ExDnnFoDfeQEC4BJYcs7NO+f2ReQQmEtYzgLHzrkF51wdaBUyJZxzB0AVaKYQbAJPnHMV51wfmY48p2U38AlKbsAgiFTJkb3Fv3MHQRAMXTHxeJSI7KlqFZiO6ZvAZL+Y+BLUVbXqnPucuQMisgusADuq+hxoAycicp1C3BWRHeBNbKrpnJsC6iJylUlCEWkBLVUtAUvALjCfRh77vw08FJFWP4GfhndnwLKqdoH7qvotLbkn6QKVJHm8BcCZiBzF/DqpFYWqWlSI2VsVu1mOigiiK+lFHoJ/G1UlCIIwz5q+8A80P0bOBrWQmgAAAABJRU5ErkJggg=='),
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                opacity: 0.6
+            });
+            
+            return new THREE.Points(particles, material);
+        }
+
+        function updateParticles(particleSystem) {
+            const positions = particleSystem.geometry.attributes.position.array;
+            const velocities = particleSystem.geometry.attributes.velocity.array;
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                positions[i] += velocities[i] * PARTICLE_SPEED;
+                positions[i + 1] += velocities[i + 1] * PARTICLE_SPEED;
+                positions[i + 2] += velocities[i + 2] * PARTICLE_SPEED;
+                
+                for (let j = 0; j < 3; j++) {
+                    if (Math.abs(positions[i + j]) > 50) {
+                        positions[i + j] = -50 * Math.sign(positions[i + j]);
+                    }
                 }
             }
+            
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        function createNode(node, index) {
+            const element = document.createElement('div');
+            element.className = 'node';
+            
+            const content = document.createElement('div');
+            content.className = 'node-content';
+            content.innerHTML = `<h2>${node.title}</h2>`;
+            element.appendChild(content);
+
+            const angle = (index / nodes.length) * Math.PI * 2;
+            const radius = 400;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+            const z = node.z;
+
+            element.style.setProperty('--x', `${x}px`);
+            element.style.setProperty('--y', `${y}px`);
+            element.style.setProperty('--z', `${z}px`);
+            
+            element.addEventListener('click', () => showContent(node));
+            return element;
+        }
+
+        function initializeConnections() {
+            const canvas = document.getElementById('canvas-connections');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const nodeElements = document.querySelectorAll('.node');
+                const time = Date.now() * 0.001;
+                
+                nodeElements.forEach((node, i) => {
+                    const rect1 = node.getBoundingClientRect();
+                    nodeElements.forEach((node2, j) => {
+                        if (i !== j) {
+                            const rect2 = node2.getBoundingClientRect();
+                            const x1 = rect1.left + rect1.width/2;
+                            const y1 = rect1.top + rect1.height/2;
+                            const x2 = rect2.left + rect2.width/2;
+                            const y2 = rect2.top + rect2.height/2;
+                            
+                            const dx = x2 - x1;
+                            const dy = y2 - y1;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            
+                            const waveAmplitude = 10;
+                            const waveFrequency = 2;
+                            const points = 20;
+                            
+                            ctx.beginPath();
+                            for(let t = 0; t <= points; t++) {
+                                const progress = t / points;
+                                const x = x1 + dx * progress;
+                                const y = y1 + dy * progress;
+                                
+                                const wave = Math.sin(progress * Math.PI * waveFrequency + time * 2) * waveAmplitude;
+                                const perpX = -dy / dist * wave;
+                                const perpY = dx / dist * wave;
+                                
+                                if(t === 0) ctx.moveTo(x + perpX, y + perpY);
+                                else ctx.lineTo(x + perpX, y + perpY);
+                            }
+                            
+                            ctx.strokeStyle = `rgba(0, 191, 255, ${0.2 * (1 - dist/2000)})`;
+                            ctx.lineWidth = 2;
+                            ctx.stroke();
+                        }
+                    });
+                });
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function updateNodeTransform(element, rotX, rotY) {
+            const x = parseFloat(element.style.getPropertyValue('--x'));
+            const y = parseFloat(element.style.getPropertyValue('--y'));
+            const z = parseFloat(element.style.getPropertyValue('--z'));
+
+            element.style.transform = `
+                translate3d(${x}px, ${y}px, ${z}px)
+                rotateX(${-rotX}deg)
+                rotateY(${-rotY}deg)
+            `;
+        }
+
+        function updateTransform() {
+            const nodes = document.querySelectorAll('.node:not(.central-node)');
+            nodes.forEach(node => {
+                updateNodeTransform(node, rotX, rotY);
+            });
+            
+            universe.style.transform = `
+                translate3d(${panX}px, ${panY}px, 0)
+                rotateX(${rotX}deg) 
+                rotateY(${rotY}deg)
+                scale(${zoom})
+            `;
+        }
+
+        function handleMouseDown(e) {
+            if (e.button === 0) {
+                isLeftMouseDown = true;
+            } else if (e.button === 2) {
+                isRightMouseDown = true;
+                e.preventDefault();
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+
+        function handleMouseMove(e) {
+            if (isLeftMouseDown) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                rotY += deltaX * 0.5;
+                rotX += deltaY * 0.5;
+                updateTransform();
+            } else if (isRightMouseDown) {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                panX += deltaX;
+                panY += deltaY;
+                updateTransform();
+            }
+            startX = e.clientX;
+            startY = e.clientY;
+        }
+
+        function handleMouseUp(e) {
+            if (e.button === 0) {
+                isLeftMouseDown = false;
+            } else if (e.button === 2) {
+                isRightMouseDown = false;
+            }
+        }
+
+        function showContent(node) {
+            const panel = document.getElementById('contentPanel');
+            const content = document.getElementById('panelContent');
+            
+            content.innerHTML = `
+                <div class="panel-header">
+                    <h2>${node.title}</h2>
+                    <button class="close-btn" onclick="closePanel()">&times;</button>
+                </div>
+                <div class="panel-content">
+                    ${node.content}
+                </div>
+            `;
+            
+            panel.classList.add('active');
+        }
+
+        function closePanel() {
+            document.getElementById('contentPanel').classList.remove('active');
+        }
+
+        function init() {
+            const particleSystem = createParticleSystem();
+            scene.add(particleSystem);
+
+            nodes.forEach((node, index) => {
+                const element = createNode(node, index);
+                universe.appendChild(element);
+            });
+            
+            initializeConnections();
+
+            function animate() {
+                requestAnimationFrame(animate);
+                updateParticles(particleSystem);
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+            }, 1000);
+        }
+
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        document.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY * -0.001;
+            zoom = Math.min(Math.max(0.5, zoom + delta), 2);
+            updateTransform();
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            const canvas = document.getElementById('canvas-connections');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         });
-    });
-    //#to-top button appears after scrolling
-    var fixed = false;
-    $(document).scroll(function() {
-        if ($(this).scrollTop() > 250) {
-            if (!fixed) {
-                fixed = true;
-                // $('#to-top').css({position:'fixed', display:'block'});
-                $('#to-top').show("slow", function() {
-                    $('#to-top').css({
-                        position: 'fixed',
-                        display: 'block'
-                    });
-                });
-            }
-        } else {
-            if (fixed) {
-                fixed = false;
-                $('#to-top').hide("slow", function() {
-                    $('#to-top').css({
-                        display: 'none'
-                    });
-                });
-            }
-        }
-    });
-    // Disable Google Maps scrolling
-    // See http://stackoverflow.com/a/25904582/1607849
-    // Disable scroll zooming and bind back the click event
-    var onMapMouseleaveHandler = function(event) {
-        var that = $(this);
-        that.on('click', onMapClickHandler);
-        that.off('mouseleave', onMapMouseleaveHandler);
-        that.find('iframe').css("pointer-events", "none");
-    }
-    var onMapClickHandler = function(event) {
-            var that = $(this);
-            // Disable the click handler until the user leaves the map area
-            that.off('click', onMapClickHandler);
-            // Enable scrolling zoom
-            that.find('iframe').css("pointer-events", "auto");
-            // Handle the mouse leave event
-            that.on('mouseleave', onMapMouseleaveHandler);
-        }
-        // Enable map zooming with mouse scroll when the user clicks the map
-    $('.map').on('click', onMapClickHandler);
+
+        window.addEventListener('load', init);
     </script>
-
 </body>
-
 </html>
